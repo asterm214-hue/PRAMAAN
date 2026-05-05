@@ -1,0 +1,33 @@
+# Dependencies
+node_modules/
+pnpm-store/
+.pnp*
+.yarn/install-state.gz
+.env*.local
+.env
+
+# Production builds
+dist/
+build/
+
+# Backend
+backend/db.sqlite
+backend/pramaan.db
+backend/uploads/
+backend/__pycache__/
+*.pyc
+*.pyo
+.Python
+
+# IDE
+.vscode/settings.json
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
