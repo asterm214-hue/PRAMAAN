@@ -68,11 +68,16 @@
 
 3. **Backend Setup:**
    ```bash
+   # Activate the virtual environment first (Windows)
+   .venv\Scripts\activate
+
+   # Then install dependencies
    pip install -r requirements.txt
    ```
 
 4. **Run the Application:**
    ```bash
+   # Make sure the virtual environment is active (see step 3)
    python app.py
    ```
    *Access the app at `http://localhost:8000`*
