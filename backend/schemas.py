@@ -36,8 +36,19 @@ class TestimonyCreate(BaseModel):
 class TestimonyResponse(BaseModel):
     id: int
     type: TestimonyType
+    content: Optional[str] = None
+    filename: Optional[str] = None
+    file_path: Optional[str] = None
+    mime_type: Optional[str] = None
+    size: Optional[int] = None
     processed: bool
     created_at: datetime
+
+    @validator("size", pre=True, always=True)
+    def coerce_size(cls, v):
+        # DB column is size_bytes; we alias it here
+        return v
+
     class Config:
         from_attributes = True
 
@@ -53,7 +64,11 @@ class TimelineEventCreate(BaseModel):
 class TimelineEventResponse(BaseModel):
     id: int
     date: str
+    time: Optional[str] = None
     title: str
+    description: Optional[str] = None
+    location: Optional[str] = None
+    witnesses: Optional[str] = None  # stored as JSON string in DB
     is_key_fact: bool
     class Config:
         from_attributes = True

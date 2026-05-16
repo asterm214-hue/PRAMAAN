@@ -1,8 +1,8 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect } from "react";
 import {
   Video, Mic, FileText, Pause, Square, Save, Send,
   Lightbulb, Heart, ChevronDown, ChevronUp, Info,
-  AlertTriangle, Play, Download
+  AlertTriangle, Play, Download, CheckCircle
 } from "lucide-react";
 import { Card } from "../components/ui/card";
 import { Button } from "../components/ui/button";
@@ -26,6 +26,8 @@ type RecordState = "idle" | "requesting" | "recording" | "paused" | "stopped" | 
 export function Record() {
   const [textContent, setTextContent] = useState("");
   const [showProcessing, setShowProcessing] = useState(false);
+  const [textSaveState, setTextSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  const [mediaSaveState, setMediaSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [activePrompt, setActivePrompt] = useState<number | null>(null);
   const [showPrompts, setShowPrompts] = useState(true);
 
@@ -135,13 +137,17 @@ export function Record() {
 
   const submitAudio = async () => {
     if (!audioBlob) return;
-    setShowProcessing(true);
+    setMediaSaveState("saving");
     try {
       const fd = new FormData();
       fd.append("file", audioBlob, "testimony-audio.webm");
       await apiForm("/api/testimony/audio", fd);
+      setMediaSaveState("saved");
+      setTimeout(() => setMediaSaveState("idle"), 3000);
     } catch (e) {
       console.error(e);
+      setMediaSaveState("error");
+      setTimeout(() => setMediaSaveState("idle"), 3000);
     }
   };
 
@@ -204,27 +210,52 @@ export function Record() {
 
   const submitVideo = async () => {
     if (!videoBlob) return;
-    setShowProcessing(true);
+    setMediaSaveState("saving");
     try {
       const fd = new FormData();
       fd.append("file", videoBlob, "testimony-video.webm");
       await apiForm("/api/testimony/video", fd);
+      setMediaSaveState("saved");
+      setTimeout(() => setMediaSaveState("idle"), 3000);
     } catch (e) {
       console.error(e);
+      setMediaSaveState("error");
+      setTimeout(() => setMediaSaveState("idle"), 3000);
     }
   };
 
   // ── TEXT ──────────────────────────────────────────────
   const handleSubmitText = async () => {
     if (!textContent.trim()) return;
-    setShowProcessing(true);
+    setTextSaveState("saving");
     try {
       await apiJson("/api/testimony/text", {
         method: "POST",
         body: JSON.stringify({ type: "text", content: textContent }),
       });
+      setTextSaveState("saved");
+      setTimeout(() => setTextSaveState("idle"), 3000);
     } catch (e) {
       console.error(e);
+      setTextSaveState("error");
+      setTimeout(() => setTextSaveState("idle"), 3000);
+    }
+  };
+
+  const handleSaveDraft = async () => {
+    if (!textContent.trim()) return;
+    setTextSaveState("saving");
+    try {
+      await apiJson("/api/testimony/text", {
+        method: "POST",
+        body: JSON.stringify({ type: "text", content: textContent }),
+      });
+      setTextSaveState("saved");
+      setTimeout(() => setTextSaveState("idle"), 2000);
+    } catch (e) {
+      console.error(e);
+      setTextSaveState("error");
+      setTimeout(() => setTextSaveState("idle"), 2000);
     }
   };
 
@@ -305,10 +336,60 @@ export function Record() {
                   />
                   <div className="absolute bottom-3 right-3 text-xs text-muted-foreground/60">{textContent.length} characters</div>
                 </div>
+
+                {/* Save feedback */}
+                <AnimatePresence>
+                  {textSaveState === "saved" && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -6 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0 }}
+                      className="flex items-center gap-2 text-green-700 bg-green-50 border border-green-200 rounded-xl px-4 py-2.5 text-sm"
+                    >
+                      <Save className="h-4 w-4" />
+                      Testimony saved successfully!
+                    </motion.div>
+                  )}
+                  {textSaveState === "error" && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -6 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0 }}
+                      className="flex items-center gap-2 text-rose-700 bg-rose-50 border border-rose-200 rounded-xl px-4 py-2.5 text-sm"
+                    >
+                      <AlertTriangle className="h-4 w-4" />
+                      Failed to save — please try again.
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
                 <div className="flex flex-wrap justify-between gap-3">
-                  <Button variant="outline" className="rounded-xl h-9 text-sm"><Save className="mr-1.5 h-4 w-4" />Save Draft</Button>
-                  <Button className="rounded-xl h-9 text-sm shadow-md shadow-primary/20" onClick={handleSubmitText} disabled={textContent.trim().length < 10}>
-                    <Send className="mr-1.5 h-4 w-4" />Submit to AI
+                  <Button
+                    variant="outline"
+                    className="rounded-xl h-9 text-sm"
+                    onClick={handleSaveDraft}
+                    disabled={textSaveState === "saving" || textContent.trim().length < 3}
+                  >
+                    {textSaveState === "saving" ? (
+                      <motion.div className="mr-1.5 h-4 w-4 rounded-full border-2 border-primary border-t-transparent"
+                        animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 0.8, ease: "linear" }} />
+                    ) : (
+                      <Save className="mr-1.5 h-4 w-4" />
+                    )}
+                    Save Draft
+                  </Button>
+                  <Button
+                    className="rounded-xl h-9 text-sm shadow-md shadow-primary/20"
+                    onClick={handleSubmitText}
+                    disabled={textSaveState === "saving" || textContent.trim().length < 10}
+                  >
+                    {textSaveState === "saving" ? (
+                      <motion.div className="mr-1.5 h-4 w-4 rounded-full border-2 border-white border-t-transparent"
+                        animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 0.8, ease: "linear" }} />
+                    ) : (
+                      <Send className="mr-1.5 h-4 w-4" />
+                    )}
+                    {textSaveState === "saving" ? "Saving..." : "Save Testimony"}
                   </Button>
                 </div>
               </TabsContent>
@@ -367,9 +448,25 @@ export function Record() {
                   ) : audioState === "stopped" ? (
                     <>
                       <Button size="lg" variant="outline" onClick={resetAudio} className="rounded-full px-6">Record Again</Button>
-                      <Button size="lg" onClick={submitAudio} className="rounded-full px-6"><Send className="mr-2 h-4 w-4" />Submit</Button>
+                      <Button
+                        size="lg"
+                        onClick={submitAudio}
+                        disabled={mediaSaveState === "saving"}
+                        className={`rounded-full px-6 ${
+                          mediaSaveState === "saved" ? "bg-green-600 hover:bg-green-600" : ""
+                        }`}
+                      >
+                        {mediaSaveState === "saving" ? (
+                          <motion.div className="mr-2 h-4 w-4 rounded-full border-2 border-white border-t-transparent" animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 0.8, ease: "linear" }} />
+                        ) : mediaSaveState === "saved" ? (
+                          <CheckCircle className="mr-2 h-4 w-4" />
+                        ) : (
+                          <Send className="mr-2 h-4 w-4" />
+                        )}
+                        {mediaSaveState === "saving" ? "Saving..." : mediaSaveState === "saved" ? "Saved!" : "Save to Vault"}
+                      </Button>
                       <a href={audioBlob ? URL.createObjectURL(audioBlob) : "#"} download="testimony-audio.webm">
-                        <Button size="lg" variant="outline" className="rounded-full px-6"><Download className="mr-2 h-4 w-4" />Save</Button>
+                        <Button size="lg" variant="outline" className="rounded-full px-6"><Download className="mr-2 h-4 w-4" />Download</Button>
                       </a>
                     </>
                   ) : (
@@ -446,9 +543,25 @@ export function Record() {
                   ) : videoState === "stopped" ? (
                     <>
                       <Button size="lg" variant="outline" onClick={resetVideo} className="rounded-full px-6">Record Again</Button>
-                      <Button size="lg" onClick={submitVideo} className="rounded-full px-6"><Send className="mr-2 h-4 w-4" />Submit</Button>
+                      <Button
+                        size="lg"
+                        onClick={submitVideo}
+                        disabled={mediaSaveState === "saving"}
+                        className={`rounded-full px-6 ${
+                          mediaSaveState === "saved" ? "bg-green-600 hover:bg-green-600" : ""
+                        }`}
+                      >
+                        {mediaSaveState === "saving" ? (
+                          <motion.div className="mr-2 h-4 w-4 rounded-full border-2 border-white border-t-transparent" animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 0.8, ease: "linear" }} />
+                        ) : mediaSaveState === "saved" ? (
+                          <CheckCircle className="mr-2 h-4 w-4" />
+                        ) : (
+                          <Send className="mr-2 h-4 w-4" />
+                        )}
+                        {mediaSaveState === "saving" ? "Saving..." : mediaSaveState === "saved" ? "Saved!" : "Save to Vault"}
+                      </Button>
                       <a href={videoBlob ? URL.createObjectURL(videoBlob) : "#"} download="testimony-video.webm">
-                        <Button size="lg" variant="outline" className="rounded-full px-6"><Download className="mr-2 h-4 w-4" />Save</Button>
+                        <Button size="lg" variant="outline" className="rounded-full px-6"><Download className="mr-2 h-4 w-4" />Download</Button>
                       </a>
                     </>
                   ) : (

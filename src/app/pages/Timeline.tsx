@@ -8,7 +8,8 @@ import { motion, AnimatePresence } from "motion/react";
 
 interface TimelineEvent {
   id: string;
-  date: string;
+  date: string;          // ISO YYYY-MM-DD from backend
+  displayDate: string;   // human-readable
   time: string;
   title: string;
   description: string;
@@ -16,6 +17,24 @@ interface TimelineEvent {
   witnesses?: string[];
   isKeyFact: boolean;
   isExpanded?: boolean;
+}
+
+/** Parse ISO date string or already-formatted string into a readable label */
+function formatEventDate(raw: string): string {
+  if (!raw) return "Unknown date";
+  // Try to parse as ISO date
+  const d = new Date(raw);
+  if (!isNaN(d.getTime())) {
+    return d.toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" });
+  }
+  return raw; // return as-is if not parseable
+}
+
+/** Parse witnesses JSON string or array safely */
+function parseWitnesses(raw: any): string[] {
+  if (!raw) return [];
+  if (Array.isArray(raw)) return raw;
+  try { return JSON.parse(raw); } catch { return [raw]; }
 }
 
 export function Timeline() {
@@ -26,25 +45,34 @@ export function Timeline() {
     const fetchEvents = async () => {
       try {
         const data = await apiJson<any[]>("/api/timeline/");
-        // Map backend schema to frontend schema if they differ
         const mappedEvents = data.map((e: any) => ({
           id: e.id.toString(),
-          date: e.date,
-          time: e.time || "12:00 PM",
+          date: e.date || "",
+          displayDate: formatEventDate(e.date),
+          time: e.time
+            ? (() => {
+                // Normalize HH:MM to 12h format
+                const [h, m] = e.time.split(":").map(Number);
+                if (isNaN(h)) return e.time;
+                const ampm = h >= 12 ? "PM" : "AM";
+                const h12 = h % 12 || 12;
+                return `${h12}:${String(m ?? 0).padStart(2, "0")} ${ampm}`;
+              })()
+            : "",
           title: e.title,
-          description: e.description,
+          description: e.description || "",
           location: e.location,
-          witnesses: e.witnesses,
+          witnesses: parseWitnesses(e.witnesses),
           isKeyFact: e.is_key_fact,
           isExpanded: false,
         }));
-        
-        // If no events from backend, show some defaults for the demo
+
         if (mappedEvents.length === 0) {
           setEvents([
             {
               id: "1",
-              date: "March 15, 2026",
+              date: new Date().toISOString().split("T")[0],
+              displayDate: formatEventDate(new Date().toISOString().split("T")[0]),
               time: "10:30 AM",
               title: "Initial Incident (Demo Data)",
               description: "The incident occurred at the workplace during morning hours. Multiple colleagues were present in the vicinity.",
@@ -52,7 +80,7 @@ export function Timeline() {
               witnesses: ["John Doe"],
               isKeyFact: true,
               isExpanded: true,
-            }
+            },
           ]);
         } else {
           setEvents(mappedEvents);
@@ -103,9 +131,71 @@ export function Timeline() {
                 <Plus className="mr-1.5 h-4 w-4" />
                 Add Event
               </Button>
-              <Button className="rounded-2xl h-9 text-sm shadow-md shadow-primary/20">
+              <Button
+                className="rounded-2xl h-9 text-sm shadow-md shadow-primary/20"
+                onClick={() => {
+                  // Inject print styles and trigger print dialog
+                  const styleId = "pramaan-print-style";
+                  if (!document.getElementById(styleId)) {
+                    const style = document.createElement("style");
+                    style.id = styleId;
+                    style.textContent = `
+                      @media print {
+                        body > * { display: none !important; }
+                        #timeline-print-root { display: block !important; }
+                        @page { margin: 20mm; }
+                      }
+                      #timeline-print-root { display: none; }
+                    `;
+                    document.head.appendChild(style);
+                  }
+                  // Create/update print root
+                  let printRoot = document.getElementById("timeline-print-root");
+                  if (!printRoot) {
+                    printRoot = document.createElement("div");
+                    printRoot.id = "timeline-print-root";
+                    document.body.appendChild(printRoot);
+                  }
+                  printRoot.innerHTML = `
+                    <div style="font-family: Georgia, serif; max-width: 700px; margin: 0 auto;">
+                      <h1 style="font-size: 22px; border-bottom: 2px solid #333; padding-bottom: 8px; margin-bottom: 16px;">
+                        PRAMAAN – Incident Timeline
+                      </h1>
+                      <p style="font-size: 12px; color: #666; margin-bottom: 24px;">
+                        Generated: ${new Date().toLocaleString("en-IN")}
+                      </p>
+                      ${events.map((ev, i) => `
+                        <div style="margin-bottom: 20px; padding: 12px; border-left: 3px solid ${
+                          ev.isKeyFact ? "#2d6a4f" : "#ccc"
+                        }; background: ${ev.isKeyFact ? "#f0fdf4" : "#fafafa"};">
+                          <div style="font-size: 11px; color: #666; margin-bottom: 4px;">
+                            Event ${i + 1} ${ev.isKeyFact ? "· ⭐ KEY FACT" : ""}
+                          </div>
+                          <div style="font-size: 11px; color: #888; margin-bottom: 6px;">
+                            📅 ${ev.displayDate}${ev.time ? " · " + ev.time : ""}
+                            ${ev.location ? " · 📍 " + ev.location : ""}
+                          </div>
+                          <strong style="font-size: 14px;">${ev.title}</strong>
+                          <p style="margin-top: 6px; font-size: 12px; line-height: 1.6; color: #444;">
+                            ${ev.description || ""}
+                          </p>
+                          ${ev.witnesses && ev.witnesses.length > 0 ? `
+                            <p style="font-size: 11px; color: #555; margin-top: 6px;">
+                              👥 Witnesses: ${ev.witnesses.join(", ")}
+                            </p>` : ""}
+                        </div>
+                      `).join("")}
+                      <div style="margin-top: 32px; font-size: 10px; color: #999; border-top: 1px solid #ddd; padding-top: 8px;">
+                        This document is auto-generated by PRAMAAN – Digital Testimony Platform.
+                        All events are recorded as provided by the user.
+                      </div>
+                    </div>
+                  `;
+                  window.print();
+                }}
+              >
                 <FileDown className="mr-1.5 h-4 w-4" />
-                Generate PDF
+                Download PDF
               </Button>
             </div>
           </div>
@@ -190,9 +280,8 @@ export function Timeline() {
                           )}
                           <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                             <Calendar className="h-3 w-3" />
-                            <span>{event.date}</span>
-                            <span>·</span>
-                            <span>{event.time}</span>
+                            <span>{event.displayDate}</span>
+                            {event.time && <><span>·</span><span>{event.time}</span></>}
                           </div>
                         </div>
                         <h3 className="font-semibold">{event.title}</h3>
