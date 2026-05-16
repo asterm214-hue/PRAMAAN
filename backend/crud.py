@@ -30,6 +30,9 @@ def authenticate_user(db: Session, email: str, password: str):
 
 # ── Testimonies ───────────────────────────────────────────────────────────────
 
+def get_testimony(db: Session, testimony_id: int):
+    return db.query(models.Testimony).filter(models.Testimony.id == testimony_id).first()
+
 def create_testimony(
     db: Session,
     testimony: schemas.TestimonyCreate,
@@ -118,3 +121,17 @@ def create_timeline_event(db: Session, event: schemas.TimelineEventCreate, testi
 
 def get_recordings(db: Session, user_id: int):
     return db.query(models.Recording).filter(models.Recording.user_id == user_id).all()
+
+# ── Legal Documents ───────────────────────────────────────────────────────────
+
+def create_legal_doc(db: Session, user_id: int, testimony_id: int, doc_type: str, pdf_path: str):
+    db_doc = models.LegalDoc(
+        user_id=user_id,
+        testimony_id=testimony_id,
+        doc_type=doc_type,
+        pdf_path=pdf_path
+    )
+    db.add(db_doc)
+    db.commit()
+    db.refresh(db_doc)
+    return db_doc

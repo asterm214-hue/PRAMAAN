@@ -1,22 +1,175 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Primary Victim Statement</title>
+    <meta charset="UTF-8">
+    <title>Comprehensive Victim Statement</title>
     <style>
-        body { font-family: Arial, sans-serif; margin: 40px; }
-        .header { text-align: center; border-bottom: 2px solid #000; padding-bottom: 20px; }
-        .content { line-height: 1.6; }
+        body {
+            font-family: 'Times New Roman', serif;
+            margin: 1in;
+            line-height: 1.5;
+            color: #333;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .header h1 {
+            font-size: 16pt;
+            text-decoration: underline;
+            margin-bottom: 5px;
+        }
+        .header p {
+            font-size: 12pt;
+            margin: 2px 0;
+        }
+        .court-details {
+            margin-bottom: 30px;
+            font-weight: bold;
+        }
+        .section-title {
+            font-weight: bold;
+            text-transform: uppercase;
+            margin-top: 20px;
+            margin-bottom: 10px;
+            border-bottom: 1px solid #000;
+        }
+        .content-block {
+            margin-bottom: 15px;
+            text-align: justify;
+        }
+        .field-label {
+            font-weight: bold;
+        }
+        .placeholder {
+            border-bottom: 1px dotted #000;
+            min-width: 150px;
+            display: inline-block;
+        }
+        .footer {
+            margin-top: 50px;
+        }
+        .signature-block {
+            margin-top: 40px;
+            display: flex;
+            justify-content: space-between;
+        }
+        .signature-line {
+            border-top: 1px solid #000;
+            width: 250px;
+            text-align: center;
+            padding-top: 5px;
+        }
+        .annexures {
+            margin-top: 20px;
+        }
+        .annexure-item {
+            margin-bottom: 5px;
+        }
+        @page {
+            size: A4;
+            margin: 1in;
+        }
     </style>
 </head>
 <body>
     <div class="header">
-        <h1>Primary Victim Statement</h1>
-        <p>Date: {{ date }}</p>
+        <p>Single-Point Testimony Package | Primary Testimony Record</p>
+        <h1>COMPREHENSIVE VICTIM STATEMENT</h1>
     </div>
-    <div class="content">
-        <p>I, {{ name }}, hereby state:</p>
-        <p>{{ content }}</p>
-        <p>Signature: ________________ Date: {{ date }}</p>
+
+    <div class="court-details">
+        <p>IN THE COURT OF: {{ court_name | default('[NAME OF COURT]') }}</p>
+        <p>Case Title: {{ case_title | default('State vs [Accused Name]') }}</p>
+        <p>FIR No. {{ fir_no | default('___') }} / Year {{ fir_year | default('__') }}, Police Station: {{ police_station | default('__') }}</p>
+    </div>
+
+    <div class="content-block">
+        <p>I, <span class="field-label">{{ victim_name | default('[Full Name]') }}</span>, aged <span class="field-label">{{ victim_age | default('___') }}</span> years, residing at <span class="field-label">{{ victim_address | default('[Full Address]') }}</span>, do hereby state as follows:</p>
+    </div>
+
+    <div class="section-title">1. Status</div>
+    <div class="content-block">
+        <p>I am the victim/complainant in the present matter and am fully aware of the facts stated in this statement.</p>
+    </div>
+
+    <div class="section-title">2. Purpose of This Statement</div>
+    <div class="content-block">
+        <p>This statement is being submitted as my complete and consolidated account of events, with the intent to minimize repeated recounting during investigation and trial, as far as legally permissible.</p>
+    </div>
+
+    <div class="section-title">3. Incident Narrative</div>
+    <div class="content-block">
+        <p>On <span class="field-label">{{ incident_date | default('[date]') }}</span>, at approximately <span class="field-label">{{ incident_time | default('[time]') }}</span>, at <span class="field-label">{{ incident_location | default('[location]') }}</span>, the following incident occurred:</p>
+        <div style="white-space: pre-wrap; margin-top: 10px;">{{ narrative | default('[Incident Description]') }}</div>
+    </div>
+
+    <div class="section-title">4. Aftermath and Impact</div>
+    <div class="content-block">
+        <p>As a result of the above incident(s), I suffered the following impact:</p>
+        <ul>
+            <li><strong>Physical impact:</strong> {{ physical_impact | default('N/A') }}</li>
+            <li><strong>Emotional/psychological impact:</strong> {{ emotional_impact | default('N/A') }}</li>
+            <li><strong>Financial/educational/work impact:</strong> {{ financial_impact | default('N/A') }}</li>
+        </ul>
+    </div>
+
+    <div class="section-title">5. Reporting and Investigation</div>
+    <div class="content-block">
+        <p>I reported the matter to {{ police_station_reported | default('[Police Station Name]') }}, leading to registration of FIR No. {{ fir_no_reported | default('___') }} dated {{ fir_date_reported | default('__') }}.</p>
+        <p>I have cooperated with the investigation and provided all necessary details to the authorities.</p>
+    </div>
+
+    <div class="section-title">6. Supporting Evidence</div>
+    <div class="content-block">
+        <p>The following materials support my statement and are annexed where applicable:</p>
+        <div class="annexures">
+            {% for annexure in annexures %}
+            <div class="annexure-item">- {{ annexure.name }} - Annexure {{ annexure.label }}</div>
+            {% else %}
+            <div class="annexure-item">- FIR copy - Annexure A</div>
+            <div class="annexure-item">- Medical records - Annexure B</div>
+            <div class="annexure-item">- Electronic evidence - Annexure C</div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div class="section-title">7. Request to the Court</div>
+    <div class="content-block">
+        <p>I respectfully request that this statement be treated as my primary and consistent account, and be referred to during proceedings to reduce the need for repeated narration of the same facts, as far as legally permissible.</p>
+    </div>
+
+    <div class="section-title">Declaration</div>
+    <div class="content-block">
+        <ul>
+            <li>This statement has been made voluntarily, without coercion or undue influence.</li>
+            <li>The contents are true and correct to the best of my knowledge and belief.</li>
+            <li>Nothing material has been concealed.</li>
+            <li>I understand that this document should be filed or used only after legal review by my advocate.</li>
+        </ul>
+    </div>
+
+    <div class="footer">
+        <p><strong>Verification</strong></p>
+        <p>Verified at <span class="placeholder">{{ verified_place | default('________') }}</span> on this <span class="placeholder">{{ verified_day | default('___') }}</span> day of <span class="placeholder">{{ verified_month_year | default('________, 20__') }}</span>.</p>
+        
+        <div class="signature-block">
+            <div class="signature-line">
+                Signature of Deponent
+            </div>
+            <div style="text-align: right;">
+                <p>Name: <span class="placeholder">{{ victim_name | default('________________') }}</span></p>
+                <p>Date: <span class="placeholder">{{ current_date | default('________________') }}</span></p>
+            </div>
+        </div>
+
+        <div style="margin-top: 50px;">
+            <p><strong>Attestation</strong></p>
+            <p>Sworn before me on this <span class="placeholder">___</span> day of <span class="placeholder">__________, 20___</span> at <span class="placeholder">[Place]</span>.</p>
+            <div class="signature-line" style="margin-top: 30px;">
+                Signature and Seal (Notary Public / Officer)
+            </div>
+        </div>
     </div>
 </body>
 </html>

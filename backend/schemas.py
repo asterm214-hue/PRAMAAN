@@ -91,6 +91,24 @@ class LegalDocType(str, Enum):
 class LegalGenerate(BaseModel):
     testimony_id: int
     doc_type: LegalDocType
+    # Template fields
+    court_name: Optional[str] = None
+    case_title: Optional[str] = None
+    fir_no: Optional[str] = None
+    fir_year: Optional[str] = None
+    police_station: Optional[str] = None
+    victim_age: Optional[str] = None
+    victim_address: Optional[str] = None
+    incident_date: Optional[str] = None
+    incident_time: Optional[str] = None
+    incident_location: Optional[str] = None
+    physical_impact: Optional[str] = None
+    emotional_impact: Optional[str] = None
+    financial_impact: Optional[str] = None
+    police_station_reported: Optional[str] = None
+    fir_no_reported: Optional[str] = None
+    fir_date_reported: Optional[str] = None
+    verified_place: Optional[str] = None
 
 class LegalResponse(BaseModel):
     id: int

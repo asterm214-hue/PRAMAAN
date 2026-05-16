@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>List of Documents / Exhibit Index</title>
+    <style>
+        body { font-family: 'Times New Roman', serif; margin: 1in; line-height: 1.5; }
+        .header { text-align: center; margin-bottom: 20px; font-weight: bold; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid black; padding: 8px; text-align: left; font-size: 11pt; }
+        th { background-color: #f2f2f2; }
+        @page { size: A4; margin: 1in; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        IN THE COURT OF {{ court_name | default('[NAME OF COURT]') }}<br>
+        Case Title: {{ case_title | default('State vs [Accused]') }}<br>
+        (FIR No. {{ fir_no | default('___') }})<br><br>
+        LIST OF DOCUMENTS / EXHIBIT INDEX
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Sr. No.</th>
+                <th>Document / Annexure</th>
+                <th>Date</th>
+                <th>Source / Prepared By</th>
+                <th>Purpose / What It Proves</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for annexure in annexures %}
+            <tr>
+                <td>{{ loop.index }}</td>
+                <td>Annexure {{ annexure.label }}: {{ annexure.name }}</td>
+                <td>{{ annexure.date | default('___') }}</td>
+                <td>{{ annexure.source | default('Victim') }}</td>
+                <td>{{ annexure.purpose | default('Evidence') }}</td>
+            </tr>
+            {% else %}
+            <tr>
+                <td>1</td>
+                <td>Annexure A: FIR Copy</td>
+                <td>{{ fir_date_reported | default('___') }}</td>
+                <td>Police</td>
+                <td>Fact of reporting</td>
+            </tr>
+            <tr>
+                <td>2</td>
+                <td>Annexure B: Victim Statement</td>
+                <td>{{ current_date }}</td>
+                <td>Victim</td>
+                <td>Primary narrative</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <div style="margin-top: 50px;">
+        <p>Signature of Deponent: __________________________</p>
+        <p>Date: {{ current_date }}</p>
+    </div>
+</body>
+</html>

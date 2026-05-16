@@ -177,6 +177,57 @@ export function Share() {
     setTimeout(() => setSharedSuccess(false), 3000);
   };
 
+  // Legal Doc Generation
+  const [showLegalDialog, setShowLegalDialog] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [legalDetails, setLegalDetails] = useState({
+    court_name: "",
+    case_title: "",
+    fir_no: "",
+    fir_year: new Date().getFullYear().toString(),
+    police_station: "",
+    victim_age: "",
+    victim_address: "",
+    incident_date: "",
+    incident_time: "",
+    incident_location: "",
+    physical_impact: "",
+    emotional_impact: "",
+    financial_impact: "",
+    police_station_reported: "",
+    fir_no_reported: "",
+    fir_date_reported: "",
+    verified_place: "",
+  });
+
+  const [docType, setDocType] = useState("Primary Victim Statement");
+
+  const handleGeneratePDF = async () => {
+    if (!selectedDocId || selectedDocId === "demo") {
+      alert("Please select a real testimony first.");
+      return;
+    }
+    setIsGenerating(true);
+    try {
+      const response = await apiJson<any>("/api/legal/generate", {
+        method: "POST",
+        body: JSON.stringify({
+          testimony_id: parseInt(selectedDocId),
+          doc_type: docType,
+          ...legalDetails,
+        }),
+      });
+      // Trigger download
+      window.open(`/uploads/${response.pdf_path}`, "_blank");
+      setShowLegalDialog(false);
+    } catch (err) {
+      console.error("PDF Generation failed:", err);
+      alert("Failed to generate PDF. Please ensure all details are correct.");
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
   // ── Render ───────────────────────────────────────────────────────────────────
 
   return (
@@ -552,6 +603,17 @@ export function Share() {
 
                 <Button
                   size="lg"
+                  variant="outline"
+                  className="w-full rounded-2xl border-primary/30 text-primary hover:bg-primary/5 mb-2"
+                  disabled={!selectedDocId || selectedDocId === "demo"}
+                  onClick={() => setShowLegalDialog(true)}
+                >
+                  <FileText className="mr-2 h-5 w-5" />
+                  Generate Official PDF (Single-Point Format)
+                </Button>
+
+                <Button
+                  size="lg"
                   className="w-full rounded-2xl shadow-lg shadow-primary/20 text-base"
                   disabled={recipients.length === 0 || !selectedDocId}
                   onClick={handleShareAll}
@@ -571,6 +633,227 @@ export function Share() {
             )}
           </AnimatePresence>
         </motion.div>
+
+        {/* Legal Details Dialog Overlay */}
+        <AnimatePresence>
+          {showLegalDialog && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
+            >
+              <motion.div
+                initial={{ scale: 0.9, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.9, opacity: 0 }}
+                className="bg-background border border-border rounded-3xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col"
+              >
+                <div className="p-5 border-b border-border flex items-center justify-between bg-primary/5">
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                      <FileText className="h-5 w-5 text-primary" />
+                    </div>
+                    <div>
+                      <h2 className="text-lg font-semibold">Official PDF Details</h2>
+                      <p className="text-xs text-muted-foreground">Fill in court & case details for the official template</p>
+                    </div>
+                  </div>
+                  <Button variant="ghost" size="icon" className="rounded-full" onClick={() => setShowLegalDialog(false)}>
+                    <X className="h-5 w-5" />
+                  </Button>
+                </div>
+
+                <div className="flex-1 overflow-y-auto p-6 space-y-6">
+                  {/* Doc Type Selector */}
+                  <div className="space-y-3">
+                    <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Select Document Format</Label>
+                    <div className="grid grid-cols-3 gap-2">
+                      {[
+                        { id: "Primary Victim Statement", label: "Statement", icon: FileText },
+                        { id: "Section 65B Certificate", label: "65B Cert", icon: Shield },
+                        { id: "Exhibit List", label: "Exhibit List", icon: Users },
+                      ].map((type) => (
+                        <button
+                          key={type.id}
+                          onClick={() => setDocType(type.id)}
+                          className={`p-3 rounded-2xl border-2 flex flex-col items-center gap-1.5 transition-all ${
+                            docType === type.id 
+                              ? "border-primary bg-primary/5 text-primary" 
+                              : "border-border hover:border-primary/20"
+                          }`}
+                        >
+                          <type.icon className="h-4 w-4" />
+                          <span className="text-[11px] font-medium">{type.label}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Court & Case Info */}
+                  <div className="space-y-4">
+                    <h3 className="text-sm font-semibold flex items-center gap-2 text-primary">
+                      <Shield className="h-4 w-4" /> Court & Case Information
+                    </h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="space-y-1.5">
+                        <Label className="text-xs">Court Name</Label>
+                        <Input 
+                          placeholder="e.g. Session Court, Delhi" 
+                          value={legalDetails.court_name}
+                          onChange={(e) => setLegalDetails({...legalDetails, court_name: e.target.value})}
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-xs">Case Title</Label>
+                        <Input 
+                          placeholder="e.g. State vs John Doe" 
+                          value={legalDetails.case_title}
+                          onChange={(e) => setLegalDetails({...legalDetails, case_title: e.target.value})}
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-xs">FIR No. / Year</Label>
+                        <div className="flex gap-2">
+                          <Input 
+                            className="flex-1" 
+                            placeholder="FIR #" 
+                            value={legalDetails.fir_no}
+                            onChange={(e) => setLegalDetails({...legalDetails, fir_no: e.target.value})}
+                          />
+                          <Input 
+                            className="w-24" 
+                            placeholder="Year" 
+                            value={legalDetails.fir_year}
+                            onChange={(e) => setLegalDetails({...legalDetails, fir_year: e.target.value})}
+                          />
+                        </div>
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-xs">Police Station</Label>
+                        <Input 
+                          placeholder="Station Name" 
+                          value={legalDetails.police_station}
+                          onChange={(e) => setLegalDetails({...legalDetails, police_station: e.target.value})}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Personal Details */}
+                  <div className="space-y-4">
+                    <h3 className="text-sm font-semibold flex items-center gap-2 text-primary">
+                      <User className="h-4 w-4" /> Victim Details
+                    </h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="space-y-1.5">
+                        <Label className="text-xs">Age</Label>
+                        <Input 
+                          placeholder="Years" 
+                          value={legalDetails.victim_age}
+                          onChange={(e) => setLegalDetails({...legalDetails, victim_age: e.target.value})}
+                        />
+                      </div>
+                      <div className="space-y-1.5 sm:col-span-2">
+                        <Label className="text-xs">Address</Label>
+                        <Input 
+                          placeholder="Full residential address" 
+                          value={legalDetails.victim_address}
+                          onChange={(e) => setLegalDetails({...legalDetails, victim_address: e.target.value})}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Incident Context */}
+                  <div className="space-y-4">
+                    <h3 className="text-sm font-semibold flex items-center gap-2 text-primary">
+                      <Clock className="h-4 w-4" /> Incident Context
+                    </h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                      <div className="space-y-1.5">
+                        <Label className="text-xs">Date</Label>
+                        <Input 
+                          type="date" 
+                          value={legalDetails.incident_date}
+                          onChange={(e) => setLegalDetails({...legalDetails, incident_date: e.target.value})}
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-xs">Time</Label>
+                        <Input 
+                          type="time" 
+                          value={legalDetails.incident_time}
+                          onChange={(e) => setLegalDetails({...legalDetails, incident_time: e.target.value})}
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-xs">Location</Label>
+                        <Input 
+                          placeholder="Place of incident" 
+                          value={legalDetails.incident_location}
+                          onChange={(e) => setLegalDetails({...legalDetails, incident_location: e.target.value})}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Impact */}
+                  <div className="space-y-4">
+                    <h3 className="text-sm font-semibold flex items-center gap-2 text-primary">
+                      <AlertCircle className="h-4 w-4" /> Impact & Aftermath
+                    </h3>
+                    <div className="space-y-3">
+                      <div className="space-y-1.5">
+                        <Label className="text-xs">Physical Impact</Label>
+                        <Input 
+                          placeholder="Injuries, medical treatment, etc." 
+                          value={legalDetails.physical_impact}
+                          onChange={(e) => setLegalDetails({...legalDetails, physical_impact: e.target.value})}
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-xs">Emotional Impact</Label>
+                        <Input 
+                          placeholder="Trauma, distress, fear, etc." 
+                          value={legalDetails.emotional_impact}
+                          onChange={(e) => setLegalDetails({...legalDetails, emotional_impact: e.target.value})}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="p-5 border-t border-border flex gap-3 bg-accent/20">
+                  <Button variant="outline" className="flex-1 rounded-xl" onClick={() => setShowLegalDialog(false)}>
+                    Cancel
+                  </Button>
+                  <Button 
+                    className="flex-[2] rounded-xl" 
+                    onClick={handleGeneratePDF}
+                    disabled={isGenerating}
+                  >
+                    {isGenerating ? (
+                      <>
+                        <motion.div 
+                          className="h-4 w-4 border-2 border-white border-t-transparent rounded-full mr-2"
+                          animate={{ rotate: 360 }}
+                          transition={{ repeat: Infinity, duration: 0.8, ease: "linear" }}
+                        />
+                        Generating PDF...
+                      </>
+                    ) : (
+                      <>
+                        <Download className="mr-2 h-4 w-4" />
+                        Generate & Download PDF
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Sharing History */}
         <motion.div
